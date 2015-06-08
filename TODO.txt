@@ -1,3 +1,2 @@
-- work from the command line.
-- work with either urls or files.
 - reduce file size to 2MB if bigger.
+- process post errors.
