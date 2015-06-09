@@ -1,2 +1,1 @@
-- reduce file size to 2MB if bigger.
 - process post errors.

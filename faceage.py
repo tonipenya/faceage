@@ -1,8 +1,9 @@
 import requests
 import json
 import sys
+import os
 
-def getFaces(headers, data):
+def get_faces(headers, data):
     keyFile = open('AZUREKEY.txt', 'r')
     AZURE_KEY = keyFile.readline()
     # https://is.azure-api.net/face/v0/detections[?analyzesAge][&analyzesGender][&analyzesFaceLandmarks][&analyzesHeadPose]&subscription-key=<Your subscription key>
@@ -11,16 +12,26 @@ def getFaces(headers, data):
     return json.loads(response.text)
 
 
-def getFacesFromUrl(url):
+def get_faces_from_url(url):
     data = json.dumps({'url': url})
     headers = {'Content-Type': 'application/json'}
-    return getFaces(headers, data)
+    return get_faces(headers, data)
 
 
-def getFacesFromFile(path):
+class FileTooBigException(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
+def get_faces_from_file(path):
+    if os.path.getsize(path) > 2*1024*1024:
+        raise FileTooBigException('File must be under 2MB')
+
     data = open(path, 'rb').read()
     headers = {'Content-Type': 'application/octet-stream'}
-    return getFaces(headers, data)
+    return get_faces(headers, data)
 
 
 if __name__ == '__main__':
@@ -37,12 +48,15 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         resource = sys.argv[1]
         if resource[0:4] == 'http':
-            faces = getFacesFromUrl(resource)
+            faces = get_faces_from_url(resource)
         else:
             try:
-                faces = getFacesFromFile(resource)
+                faces = get_faces_from_file(resource)
             except IOError:
                 print 'Could not process the file:', resource
+                exit(-1)
+            except FileTooBigException as e:
+                print e.value
                 exit(-1)
     else:
         print USAGE
