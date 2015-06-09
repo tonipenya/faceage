@@ -3,12 +3,23 @@ import json
 import sys
 import os
 
+
+class BadResponseException(Exception):
+    def __init__ (self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+
 def get_faces(headers, data):
     keyFile = open('AZUREKEY.txt', 'r')
     AZURE_KEY = keyFile.readline()
-    # https://is.azure-api.net/face/v0/detections[?analyzesAge][&analyzesGender][&analyzesFaceLandmarks][&analyzesHeadPose]&subscription-key=<Your subscription key>
+    # [?analyzesAge][&analyzesGender][&analyzesFaceLandmarks][&analyzesHeadPose]&subscription-key=<Your subscription key>
     url = 'https://api.projectoxford.ai/face/v0/detections?analyzesAge=true&analyzesGender=true&subscription-key=' + AZURE_KEY
     response = requests.post(url, data=data, headers=headers)
+    if response.status_code != 200:
+        raise BadResponseException(json.loads(response.content)['message'])
     return json.loads(response.text)
 
 
@@ -48,7 +59,12 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         resource = sys.argv[1]
         if resource[0:4] == 'http':
-            faces = get_faces_from_url(resource)
+            try:
+                faces = get_faces_from_url(resource)
+            except BadResponseException as e:
+                print 'Error contacting the server'
+                print e
+                exit(-1)
         else:
             try:
                 faces = get_faces_from_file(resource)
